@@ -1,8 +1,5 @@
 package com.weimingyou.architecturevalidator;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,23 +15,20 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
-import javax.tools.FileObject;
-import javax.tools.StandardLocation;
 
 @SupportedAnnotationTypes({ "com.weimingyou.architecturevalidator.ArchitectureValidation" })
 public class ArchitectureValidationProcessor extends AbstractProcessor {
-	@SuppressWarnings("unused")
 	private Types typeUtils;
-	@SuppressWarnings("unused")
 	private Elements elementUtils;
 	private Filer filer;
 	private Messager messager;
+	
+	private SourcePathExtractor sourcePathExtractor;
 	
 	@Override
 	public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -43,6 +37,8 @@ public class ArchitectureValidationProcessor extends AbstractProcessor {
 		elementUtils = processingEnv.getElementUtils();
 		filer = processingEnv.getFiler();
 		messager = processingEnv.getMessager();
+		
+		this.sourcePathExtractor = new SourcePathExtractor(typeUtils, elementUtils, filer, messager);
 	}
 
 	@Override
@@ -64,8 +60,9 @@ public class ArchitectureValidationProcessor extends AbstractProcessor {
 				
 				Map<String, List<String>> disallows = getDisallows(annotatedElement);
 
-				String srcDirectory = getSourcePath(annotatedElement);
-				if (2>1) throw new ValidationException("srcDirectory = " + srcDirectory);
+				String srcDirectory = this.sourcePathExtractor.getSourcePath(annotatedElement);
+				//TODO delete the following line line.
+				//if (2>1) throw new ValidationException("srcDirectory = " + srcDirectory);
 				
 				SourceFileValidation validation = new SourceFileValidation(disallows, srcDirectory, getQualifiedName(annotatedElement));
 				
@@ -79,12 +76,14 @@ public class ArchitectureValidationProcessor extends AbstractProcessor {
 			}
 		} catch (ValidationException e) {
 			error(element, e.getMessage());
-		} catch (IOException e) {
+		}/* catch (IOException e) {
 			error(element, e.getMessage());
-		}
+		}*/
 
 		return true;
 	}
+	
+	
 
 	private String getQualifiedName(Element annotatedElement) {
 		return annotatedElement.toString();
@@ -128,76 +127,6 @@ public class ArchitectureValidationProcessor extends AbstractProcessor {
 		}
 		
 		return resultMap;
-	}
-
-	private String getSourcePath(Element annotatedElement) throws IOException {
-		TypeElement typeElement = (TypeElement) annotatedElement;
-		
-		String itsPackage = ((PackageElement)typeElement.getEnclosingElement()).getQualifiedName().toString();
-		String simpleName = typeElement.getSimpleName().toString() + ".java";
-		
-		/*try {
-			FileObject resource = filer.getResource(StandardLocation.SOURCE_PATH, itsPackage, simpleName);
-			resource.openInputStream().close();
-            return resource.toUri().getPath();
-        } catch (FileNotFoundException e) {
-            //messager.printMessage(Kind.ERROR, "could not read: " + e.getMessage());
-            //e.printStackTrace();
-        }*/
-		
-		itsPackage = itsPackage.replaceAll("\\.", "/");
-        File file = new File(itsPackage + "/" + simpleName);
-		
-		//return itsPackage + ":" + simpleName;
-		return file.getAbsolutePath();
-		
-		//return itsPackage + ":" + simpleName;
-		
-		/*
-		String anyName = "anything";
-		String blank = "";
-		String elipseSourceOutput1 = ".apt_generated\\";
-		String elipseSourceOutput2 = ".apt_generated/";
-		String mavenSourceOutput1 = "target\\generated-sources\\annotations\\";
-		String mavenSourceOutput2 = "target/generated-sources/annotations/";
-		String sourcePath = "src/";
-		String mavenSourcePath = "src/main/java/";*/
-		
-		
-		
-		
-		
-		/*JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-		DiagnosticCollector<JavaFileObject> diagnostics =
-				new DiagnosticCollector<JavaFileObject>();
-		StandardJavaFileManager fm = compiler.getStandardFileManager(diagnostics, null, null);
-		Iterable<? extends File> iter = fm.getLocation(StandardLocation.SOURCE_PATH);
-		if (null == iter) return "null == iter";
-		String output = "";
-		for (File f : iter) {
-			output += f.getAbsolutePath();
-		}
-		if (2>1) return output;*/
-		
-		/*FileObject fileObject = filer.getResource(StandardLocation.SOURCE_OUTPUT, blank,anyName);//SOURCE_PATH not working
-		String rootPath = fileObject.toUri().getPath().replace(anyName, blank);//file:/C:/my_temp/workspace/test/src/anything
-		rootPath = rootPath.substring(0, rootPath.length() - 1);
-		
-		if (rootPath.endsWith(elipseSourceOutput1)) {
-			rootPath = rootPath.replace(elipseSourceOutput1, blank);
-			rootPath += sourcePath;
-		} else if (rootPath.endsWith(elipseSourceOutput2)) {
-			rootPath = rootPath.replace(elipseSourceOutput2, blank);
-			rootPath += sourcePath;
-		} else if (rootPath.endsWith(mavenSourceOutput1)) {
-			rootPath = rootPath.replace(mavenSourceOutput1, blank);
-			rootPath += mavenSourcePath;
-		} else if (rootPath.endsWith(mavenSourceOutput2)) {
-			rootPath = rootPath.replace(mavenSourceOutput2, blank);
-			rootPath += mavenSourcePath;
-		}
-		
-		return rootPath;*/
 	}
 
 	/**
