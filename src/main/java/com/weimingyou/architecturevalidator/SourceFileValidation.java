@@ -65,14 +65,14 @@ public class SourceFileValidation {
 			String line = null;
 			
 			while ((line = reader.readLine()) != null) {
+				line = line.trim();
+				
+				if (line.equals("")) continue;
+				
+				if (line.startsWith("//") || line.startsWith("/*")) continue;
+				
 				for (String pattern : disallowedPattern) {
-					line = line.trim();
-					
-					if (line.equals("")) break;
-					
-					if (line.startsWith("//") || line.startsWith("/*")) break;
-					
-					if (line.contains(pattern)) {
+					if (line.contains(pattern + ".")) {
 						this.failedMessages.add(qualifiedName + " should not use " + pattern);
 					}
 				}
