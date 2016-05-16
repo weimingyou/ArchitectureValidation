@@ -44,14 +44,14 @@ public class SourceFileValidation {
 	}
 
 	private void checkFile(File file, String packageName) throws ValidationException {
+		String qualifiedName = packageName + "." + file.getName().replace(".java", "");
+		
+		if (qualifiedName.equals(this.itself)) return;//skip itself
+		
 		if (packageName.equals("")) {
 			this.failedMessages.add("Put Java code at default package is discouraged.");
 			return;
 		}
-		
-		String qualifiedName = packageName + "." + file.getName().replace(".java", "");
-		
-		if (qualifiedName.equals(this.itself)) return;//skip itself
 		
 		List<String> disallowedPattern = this.disallows.get(packageName);
 		
